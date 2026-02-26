@@ -4,60 +4,73 @@ import folium
 from streamlit_folium import st_folium
 from streamlit_js_eval import get_geolocation
 
-# 1. Tumchi Google Sheet CSV URL
+# 1. Tumchi Google Sheet CSV URL ithe taka
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSa1YGHQjXvOjLI0_GDeEDbk7l5jTsEU2W637m0hIrRhs-SRszSb32WsloW_UXWLJML_4YTBIhMwKIi/pub?gid=0&single=true&output=csv"
 
-st.set_page_config(page_title="Rider Group Live", layout="wide")
-st.title("🏍️ Rider Group: Live Tracking & Calls")
+st.set_page_config(page_title="Rider Group App", layout="wide")
 
-# --- AUTO LOCATION LOGIC ---
+# App title
+st.title("🏍️ Rider Group: Live Map & Chat")
+
+# --- SIDEBAR: RIDER ACTIONS ---
 st.sidebar.header("📍 Tumche Location")
 loc = get_geolocation()
-
 if loc:
-    lat = loc['coords']['latitude']
-    lon = loc['coords']['longitude']
-    st.sidebar.success(f"Detected: {lat}, {lon}")
-    st.sidebar.info("Hey location Google Sheet madhe update kara.")
+    st.sidebar.success(f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}")
 else:
-    st.sidebar.warning("GPS Allow kara ani Location ON theva.")
+    st.sidebar.warning("GPS Permission allow kara")
 
-# --- MEMBER LIST & CALLING ---
+st.sidebar.divider()
+st.sidebar.header("👥 Group Members")
+
 try:
+    # Google Sheet madhun data vachne
     df = pd.read_csv(SHEET_URL)
-    
-    st.sidebar.header("📞 Group Members")
-    for index, row in df.iterrows():
-        col1, col2 = st.sidebar.columns([2, 1])
-        col1.write(f"**{row['Name']}**")
-        # CALL BUTTON: 'tel:' vaprun direct dialer ughdto
-        col2.markdown(f"[📞 Call](tel:{row['Phone']})")
-        st.sidebar.divider()
+    df = df.dropna(subset=['Name', 'Phone', 'Latitude', 'Longitude'])
 
-    # --- MAP DISPLAY ---
+    for index, row in df.iterrows():
+        with st.sidebar.container():
+            col1, col2, col3 = st.columns([2, 1, 1])
+            
+            # 1. Rider che Nav
+            col1.write(f"**{row['Name']}**")
+            
+            # 2. Call Button (Direct Phone Dialer)
+            col2.markdown(f"[📞](tel:{row['Phone']})")
+            
+            # 3. WhatsApp Button (Direct Chat)
+            # Space asel tar URL madhe ti %20 ne badlavi lagte
+            msg = f"Hey {row['Name']}, kuthe aahes? App var location check kar."
+            wa_url = f"https://wa.me/{row['Phone']}?text={msg.replace(' ', '%20')}"
+            col3.markdown(f"[💬]({wa_url})")
+            
+            st.sidebar.divider()
+
+    # --- MAIN MAP ---
     st.subheader("Live Movement Map")
     
-    # Map center (Sagle riders distil asha paddhatine)
+    # Map center point tharavne
     m = folium.Map(location=[df['Latitude'].mean(), df['Longitude'].mean()], zoom_start=12)
 
-    # Destination Marker (Fix - Red)
-    folium.Marker([18.7557, 73.4091], popup="Destination", icon=folium.Icon(color="red", icon="flag")).add_to(m)
+    # Destination (He tumhi sheet madhun hi gheu shakta)
+    dest_lat, dest_lon = 18.7557, 73.4091 
+    folium.Marker([dest_lat, dest_lon], popup="Destination", icon=folium.Icon(color="red", icon="flag")).add_to(m)
 
-    # Riders Markers (Blue)
+    # Saglya Riders che Markers
     for index, row in df.iterrows():
         folium.Marker(
             [row['Latitude'], row['Longitude']], 
-            popup=f"{row['Name']} (Calling: {row['Phone']})",
+            popup=f"{row['Name']}\n{row['Phone']}",
             icon=folium.Icon(color="blue", icon="motorcycle", prefix='fa')
         ).add_to(m)
 
     st_folium(m, width=700, height=500)
 
-    # --- AUTO REFRESH (Dar 30 secondala) ---
-    st.info("App dar 30 secondala auto-update hot aahe...")
-    import time
-    time.sleep(30)
-    st.rerun()
+    # Auto Refresh Button
+    if st.button('🔄 Refresh Locations'):
+        st.rerun()
 
 except Exception as e:
-    st.error("Data load hot nahiye. Sheet URL check kara.")
+    st.error(f"Error: Sheet link check kara. Details: {e}")
+
+st.info("Tip: WhatsApp button var click kelya var direct chat ughdel.")
