@@ -5,7 +5,7 @@ from streamlit_folium import st_folium
 from streamlit_js_eval import get_geolocation
 
 # 1. Tumchi Google Sheet CSV URL
-SHEET_URL = "TUMCHI_CSV_LINK_ITHE_PASTE_KARA"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSa1YGHQjXvOjLI0_GDeEDbk7l5jTsEU2W637m0hIrRhs-SRszSb32WsloW_UXWLJML_4YTBIhMwKIi/pub?gid=0&single=true&output=csv"
 
 st.set_page_config(page_title="Rider Group Live", layout="wide")
 st.title("🏍️ Rider Group: Live Tracking & Calls")
